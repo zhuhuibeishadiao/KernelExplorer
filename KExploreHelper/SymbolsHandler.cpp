@@ -16,7 +16,7 @@ SymbolInfo::~SymbolInfo() {
 
 SymbolsHandler::SymbolsHandler(PCSTR searchPath, DWORD symOptions)
 {
-    static int _instances = 0;
+    static INT_PTR _instances = 0;
     m_hProcess = reinterpret_cast<HANDLE>(++_instances);
     ::SymSetOptions(symOptions);
     ::SymInitialize(m_hProcess, searchPath, FALSE);

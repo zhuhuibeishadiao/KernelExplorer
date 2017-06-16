@@ -6,6 +6,7 @@
 #include "..\KExploreHelper\SymbolsHandler.h"
 #include "..\KExplore\KExploreClient.h"
 #include <winternl.h>
+#include "resource.h"
 
 #pragma comment(lib, "ntdll")
 
@@ -47,7 +48,7 @@ void PrintJob(void* job, HANDLE hJob, Options options) {
         if(processListOk) {
             printf("(");
             for(DWORD i = 0; i < list->NumberOfProcessIdsInList; i++)
-                printf("%d ", list->ProcessIdList[i]);
+                printf("%d ", static_cast<int>(list->ProcessIdList[i]));
             printf(")");
         }
         printf("\n");
@@ -71,15 +72,65 @@ Options ParseCommandLineOptions(int argc, char* argv[]) {
     return (Options)options;
 }
 
+bool Initialize() {
+    // load driver
+    WCHAR driverName[] = L"KExplore";
+
+    WCHAR path[MAX_PATH];
+    ::GetModuleFileName(nullptr, path, MAX_PATH);
+    std::wstring exePath(path), fullPath;
+    HMODULE hInstance = ::GetModuleHandle(exePath.c_str());
+
+    if(!KExploreHelper::LoadDriver(driverName)) {
+        // extract and install
+        *(1 + wcsrchr(path, L'\\')) = UNICODE_NULL;
+        fullPath = path;
+        fullPath += L"KExplore.sys";
+        if(!KExploreHelper::ExtractResourceToFile(hInstance, MAKEINTRESOURCE(IDR_DRIVER), fullPath.c_str())) {
+            printf("Failed to extract driver binary\n");
+            return false;
+        }
+
+        if(!KExploreHelper::InstallDriver(driverName, fullPath.c_str())) {
+            printf("Failed to install driver\n");
+            return false;
+        }
+
+        if(!KExploreHelper::LoadDriver(driverName)) {
+            printf("Failed to start driver\n");
+            return false;
+        }
+    }
+
+    // extract DLLs
+    fullPath = path;
+    fullPath += L"DbgHelp.dll";
+    if(KExploreHelper::ExtractResourceToFile(hInstance, MAKEINTRESOURCE(IDR_DBGHELP), fullPath.c_str())) {
+        fullPath = path;
+        fullPath += L"SymSrv.dll";
+        if(!KExploreHelper::ExtractResourceToFile(hInstance, MAKEINTRESOURCE(IDR_SYMSRV), fullPath.c_str())) {
+            printf("Failed to extract DLLs\n");
+            return false;
+        }
+    }
+    return true;
+}
+
 int main(int argc, char* argv[]) {
-    PrintHeader();
-
-    Options options = ParseCommandLineOptions(argc, argv);
-
     auto hDevice = KExploreHelper::OpenDriverHandle();
-    if (hDevice == INVALID_HANDLE_VALUE)
-        return Error("Failed to open driver handle");
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        if(!Initialize())
+            return 1;
 
+        // try again by running again (so that the DLLs would load early enough)
+        PROCESS_INFORMATION pi;
+        STARTUPINFO si = { sizeof(si) };
+        CreateProcess(nullptr, ::GetCommandLine(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+        return 0;
+    }
+
+    PrintHeader();
+    Options options = ParseCommandLineOptions(argc, argv);
 
     SymbolsHandler handler;
     auto address = handler.LoadSymbolsForModule("%systemroot%\\system32\\ntoskrnl.exe");
