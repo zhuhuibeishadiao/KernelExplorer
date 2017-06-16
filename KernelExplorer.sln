@@ -8,6 +8,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KExploreHelper", "KExploreHelper\KExploreHelper.vcxproj", "{2F00036D-C293-4C9D-9267-784C11C01ED6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JobList", "JobList\JobList.vcxproj", "{74D4ED9A-6D7E-45D4-9016-46C8F183B739}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E96B9A14-28CD-4D69-9D8B-7A0A69543A01} = {E96B9A14-28CD-4D69-9D8B-7A0A69543A01}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

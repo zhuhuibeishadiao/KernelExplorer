@@ -41,12 +41,12 @@ void PrintJob(void* job, HANDLE hJob, Options options) {
     auto str = reinterpret_cast<UNICODE_STRING*>(bstr.get());  
     ::NtQueryObject(hJob, (OBJECT_INFORMATION_CLASS) ObjectNameInformation, str, 512, nullptr);
     if(((int)options & (int)Options::NamedObjects) == 0 || (str->Length > 0)) {
-        printf("0x%p %-72ws", job, str->Buffer);
+        printf("0x%p %-72ws", job, str->Buffer == nullptr ? L"" : str->Buffer);
         if(basicInfoOk)
             printf("%d/%d/%d ", basicInfo.TotalProcesses, basicInfo.ActiveProcesses, basicInfo.TotalTerminatedProcesses);
 
         if(processListOk) {
-            printf("(");
+            printf("( ");
             for(DWORD i = 0; i < list->NumberOfProcessIdsInList; i++)
                 printf("%d ", static_cast<int>(list->ProcessIdList[i]));
             printf(")");
@@ -80,10 +80,10 @@ bool Initialize() {
     ::GetModuleFileName(nullptr, path, MAX_PATH);
     std::wstring exePath(path), fullPath;
     HMODULE hInstance = ::GetModuleHandle(exePath.c_str());
+    *(1 + wcsrchr(path, L'\\')) = UNICODE_NULL;
 
     if(!KExploreHelper::LoadDriver(driverName)) {
         // extract and install
-        *(1 + wcsrchr(path, L'\\')) = UNICODE_NULL;
         fullPath = path;
         fullPath += L"KExplore.sys";
         if(!KExploreHelper::ExtractResourceToFile(hInstance, MAKEINTRESOURCE(IDR_DRIVER), fullPath.c_str())) {
@@ -123,6 +123,7 @@ int main(int argc, char* argv[]) {
             return 1;
 
         // try again by running again (so that the DLLs would load early enough)
+
         PROCESS_INFORMATION pi;
         STARTUPINFO si = { sizeof(si) };
         CreateProcess(nullptr, ::GetCommandLine(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
@@ -136,7 +137,7 @@ int main(int argc, char* argv[]) {
     auto address = handler.LoadSymbolsForModule("%systemroot%\\system32\\ntoskrnl.exe");
     auto PspGetNextJobSymbol = handler.GetSymbolFromName("PspGetNextJob");
     if (PspGetNextJobSymbol == nullptr)
-        return Error("No symbols have been found. Please check _NT_SYMBOL_PATH environment variable");
+        return Error("No symbols have been found or SymSrv.dll missing. Please check _NT_SYMBOL_PATH environment variable");
 
     // calculate the excat function address
 
