@@ -171,7 +171,6 @@
   <ItemGroup>
     <None Include="..\x64\Release\dbghelp.dll" />
     <None Include="..\x64\Release\KExplore.sys" />
-    <None Include="..\x64\Release\KExplore\KExplore.sys" />
     <None Include="..\x64\Release\symsrv.dll" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

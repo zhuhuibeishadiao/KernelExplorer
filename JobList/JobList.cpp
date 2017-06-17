@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
     if (PspGetNextJobSymbol == nullptr)
         return Error("No symbols have been found or SymSrv.dll missing. Please check _NT_SYMBOL_PATH environment variable");
 
-    // calculate the excat function address
+    // calculate the exact function address
 
     void* PspGetNextJob = (void*)((ULONG_PTR)KExploreHelper::GetKernelBaseAddress() + PspGetNextJobSymbol->GetSymbolInfo()->Address - address);
 
